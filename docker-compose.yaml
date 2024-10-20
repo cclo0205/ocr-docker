@@ -1,7 +1,7 @@
 version: "3.7"
 services:
   ocr:
-    image: techblog/ocr-docker:latest
+    image: techblog/ocr-docker:miche
     ports:
       - "8080:8080"
     container_name: tts-stt

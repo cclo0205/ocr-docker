@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, request, make_response, render_template, url_for, g, send_from_directory, jsonify, send_file
-from flask_restful import Resource, Api
-from json import dumps
+from flask import Flask, request, render_template, send_from_directory, jsonify
+from flask_restful import Api
 from loguru import logger
-import yaml, uuid, base64, os, io
+import base64, os
 import pytesseract
 import subprocess
-from subprocess import Popen
 import time
+from io import BytesIO
+#from PIL import Image
 
 try:
     from PIL import Image
@@ -42,36 +42,44 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = "/opt/ocr/tmp"
 api = Api(app)
 
-
-
 @app.route('/ocr', methods=['POST'])
 def ocr():
     if request.method == 'POST':
-        # check if the post request has the file part
-        language = str(request.form['languages'])
-        if 'file' not in request.files:
-            return "Data posted does not contains files"
-        file = request.files['file']
-        if not allowed_file(file.filename):
-            return "The file type you uploaded is not supported"
+        # Check if the request contains JSON data
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON data"}), 400
+        
+        language = data.get('languages')
+        base64_image = data.get('image')
+
+        if not base64_image:
+            return "Data posted does not contain a base64 image"
         if not language:
             return "Please select OCR Language"
-        if file and allowed_file(file.filename):
-            filename = file.filename.lower()
-            image_file = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(image_file)
-            if ".pdf" in image_file:
-                image_file = convert_to_tiff(image_file)
-            if ".tiff" in image_file:
-                image = Image.open(image_file)
-                config = ("--psm 6")
-                txt = ''
-                for frame in range(image.n_frames):
-                    image.seek(frame)
-                    txt += pytesseract.image_to_string(image, config = config, lang=language) + '\n'
-                return txt
-            else:
-                return pytesseract.image_to_string(Image.open(image_file), lang=language)
+
+        try:
+            # Decode the base64 image
+            image_data = base64.b64decode(base64_image)
+            image = Image.open(BytesIO(image_data))
+        except Exception as e:
+            return f"Invalid image data: {e}"
+        
+        #return image.format
+        #image.save('/opt/ocr/tmp/your_image.png', format='PNG')
+
+
+        # Perform OCR on the decoded image
+        config = "--psm 7"
+        if image.format.lower() == 'tiff':
+            txt = ''
+            for frame in range(image.n_frames):
+                image.seek(frame)
+                txt += pytesseract.image_to_string(image, config=config, lang=language) + '\n'
+            return jsonify({"text": txt}), 200
+        else:
+            txt = pytesseract.image_to_string(image, lang=language, config=config)
+            return jsonify({"text": txt.strip()}), 200
 
 
 

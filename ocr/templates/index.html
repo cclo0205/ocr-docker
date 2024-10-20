@@ -12,61 +12,82 @@
     <div class="content">
         <div class="tab-content">
             <div id="STT" class="container tab-pane active">
-                <form method="post" enctype="multipart/form-data" id="ocr_form">
-                    <div class="form-group">
-                        <label>Select image or pdf File</label>
-                        <div class="input-group">
-                            <span class="input-group-btn">
-                                <span class="btn btn-primary btn-file">
-                                    Browse… <input type="file" id="imgInp" name="file">
-                                </span>
-                            </span>
-                            <input type="text" class="form-control" readonly>
+                <div class="form-group">
+                    <label>Enter Base64 Image Data</label>
+                    <textarea class="form-control" id="base64Input" rows="4" placeholder="Paste your base64 image data here"></textarea>
+                    <small class="form-text text-muted">Please enter the base64-encoded image data.</small>
+                </div>
 
-                        </div>
-                        <small id="langHelp" class="form-text text-muted">Select image or pdf file to convert. Supported
-                            file types are: png, jpg, tiff, pdf</small>
-                    </div>
+                <div class="form-group">
+                    <label for="voices">Select OCR Language</label>
+                    <select id="languages" class="form-control"></select>
+                    <small id="langHelp" class="form-text text-muted"></small>
+                </div>
 
-                    <div class="form-group">
-                        <label for="voices">Select OCR Language</label>
-                        <select name="languages" class="form-control" id="languages"></select>
-                        <small id="langHelp" class="form-text text-muted"></small>
-                    </div>
+                <div class='form-group' style="display: block;width:50%;margin:0 auto;"> 
+                    <table id="working" style="display: none;">
+                        <tr>
+                            <td>Working, it may take a while...</td>
+                            <td> &nbsp;</td>
+                            <td>
+                                <div class="spinner">
+                                    <div class="rect1"></div>
+                                    <div class="rect2"></div>
+                                    <div class="rect3"></div>
+                                    <div class="rect4"></div>
+                                    <div class="rect5"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
 
-
-                    <div class='form-group' style="display: block;width:50%;margin:0 auto;"> 
-                        <table id="working">
-                            <tr>
-                                <td>
-                                   Working, it may take a while...
-                                </td>
-                                <td> &nbsp;</td>
-                                <td>
-                                    <div class="spinner">
-
-                                        <div class="rect1"></div>
-                                        <div class="rect2"></div>
-                                        <div class="rect3"></div>
-                                        <div class="rect4"></div>
-                                        <div class="rect5"></div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-
-
-                    <div class="form-group">
-                        <label for="InputUsername">Result</label>
-                        <textarea class="form-control" name="result" id="result"></textarea>
-                        <small id="transcriptHelp" class="form-text text-muted"></small>
-                    </div>
-                    <button type="button" id="ocr" class="btn btn-primary">Run OCR</button>
-                </form>
+                <div class="form-group">
+                    <label for="InputUsername">Result</label>
+                    <textarea class="form-control" id="result"></textarea>
+                    <small id="transcriptHelp" class="form-text text-muted"></small>
+                </div>
+                <button type="button" id="ocr" class="btn btn-primary">Run OCR</button>
             </div>
         </div>
     </div>
+
+    <script>
+        document.getElementById('ocr').addEventListener('click', function () {
+            const base64Image = document.getElementById('base64Input').value;
+            const language = document.getElementById('languages').value;
+
+            // Show the "working" spinner
+            document.getElementById('working').style.display = 'block';
+
+            fetch('/ocr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image: base64Image,
+                    languages: language,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide the "working" spinner
+                document.getElementById('working').style.display = 'none';
+
+                if (data.error) {
+                    document.getElementById('result').value = 'Error: ' + data.error;
+                } else {
+                    document.getElementById('result').value = data.text;
+                }
+            })
+            .catch((error) => {
+                // Hide the "working" spinner
+                document.getElementById('working').style.display = 'none';
+                document.getElementById('result').value = 'Error: ' + error.message;
+            });
+        });
+    </script>
 </body>
 
 
