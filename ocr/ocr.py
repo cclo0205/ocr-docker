@@ -68,6 +68,7 @@ def ocr():
         #return image.format
         #image.save('/opt/ocr/tmp/your_image.png', format='PNG')
 
+        logger.info("base64:" + base64_image)
 
         # Perform OCR on the decoded image
         config = "--psm 7"
@@ -79,6 +80,7 @@ def ocr():
             return jsonify({"text": txt}), 200
         else:
             txt = pytesseract.image_to_string(image, lang=language, config=config)
+            logger.info("txt:" + txt)
             return jsonify({"text": txt.strip()}), 200
 
 
